@@ -42,8 +42,8 @@ giV4 = GeoIP.new(GeoIP.GEOIP_MEMORY_CACHE)
 giV6 = GeoIP.open("/usr/share/GeoIP/GeoIPv6.dat", GeoIP.GEOIP_STANDARD)
 
 def parse_log():
-    entries = dict()
-    file = open(HOME + '/smuxi-web/logs/access.log', 'r')
+    entries = {}
+    file = open(f'{HOME}/smuxi-web/logs/access.log', 'r')
     parts = [
         r'(?P<host>\S+)',                   # host %h
         r'\S+',                             # indent %l (unused)
@@ -73,14 +73,10 @@ def parse_log():
 
             res["status"] = int(res["status"])
 
-            if res["size"] == "-":
-                res["size"] = 0
-            else:
-                res["size"] = int(res["size"])
-
+            res["size"] = 0 if res["size"] == "-" else int(res["size"])
             if res["referer"] == "-":
                 res["referer"] = None
-        
+
             try:
                 PTR = socket.gethostbyaddr(res["host"])[0]
             except socket.herror:
@@ -90,26 +86,29 @@ def parse_log():
             country = giV4.country_code_by_addr(res["host"])
             if country is None:
                 country = giV6.country_code_by_addr_v6(res["host"])
-                if country is None:
-                    country = "Unknown"
-            
+            if country is None:
+                country = "Unknown"
+
             if agent_res["os"] == "GNU/Linux" and "(" in agent_res["dist"] : agent_res["os"] = "Linux " + agent_res["dist"][1]
-            if agent_res["program"] == None: agent_res["program"] = agent_res["programV2"]
+            if agent_res["program"] is None: agent_res["program"] = agent_res["programV2"]
 
             if ":" in agent_res["vendor"]: agent_res["vendor"] = agent_res["vendor"].split(':')[1]
             elif "/" in agent_res["vendor"]:
                 commithash = agent_res["vendor"].split("/")[-1]
                 try:
-                    agent_res["vendor"] = subprocess.check_output(["git", "describe", "%s"%commithash], stderr=subprocess.STDOUT).strip("\n")
+                    agent_res["vendor"] = subprocess.check_output(
+                        ["git", "describe", f"{commithash}"],
+                        stderr=subprocess.STDOUT,
+                    ).strip("\n")
                 except subprocess.CalledProcessError:
-                    agent_res["vendor"] = "Unknown (%s)"%commithash
-                    
+                    agent_res["vendor"] = f"Unknown ({commithash})"
+
             elif len(agent_res["vendor"].split(' ')) == 2: 
                 if (len(agent_res["vendor"].split(' ')[1]) < 3): agent_res["vendor"] = agent_res["version"]
                 else: agent_res["vendor"] = agent_res["vendor"].split(' ')[1]
             elif len(agent_res["vendor"].split(' ')) == 3: agent_res["vendor"] = agent_res["vendor"].split(' ')[2]
             else: agent_res["vendor"] = agent_res["version"]           
-            
+
             res["os"] = agent_res["os"]
             res["vendor"] =  agent_res["vendor"]
             res["program"] = agent_res["program"]
@@ -120,22 +119,22 @@ def parse_log():
             if len(res["agent"]) == 8:
                 res["agent"][7] = res["agent"][6]
 
-            if res["os"] == None:
+            if res["os"] is None:
                 res["os"] = ""
 
-            if res["vendor"] == None:
+            if res["vendor"] is None:
                 res["vendor"] = ""
 
-            if res["program"] == None:
+            if res["program"] is None:
                 res["program"] = ""
 
-            if res["version"] == None:
+            if res["version"] is None:
                 res["version"] = ""
 
-            if res["country"] == None:
+            if res["country"] is None:
                 res["country"] = ""
 
-            if res["agent"] == None:
+            if res["agent"] is None:
                 res["agent"] = ""
 
             entries[res["host"]] = res
